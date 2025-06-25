@@ -416,9 +416,4 @@ class App {
         `;
     }
 
-    getRoleName(role) {
-        const roles = {
-            'admin': 'Administrador',
-            'manager': 'Gestor',
-            'employe
-(Content truncated due to size limit. Use line ranges to read in chunks)
+}
