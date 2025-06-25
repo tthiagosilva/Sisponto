@@ -408,10 +408,5 @@ class Registro {
         const currentTime = Utils.formatTimeShort(now);
         const currentMinutes = Utils.timeToMinutes(currentTime);
         
-        switch (tipo) {
-            case 'entrada':
-                // Verificar atraso
-                const startMinutes = Utils.timeToMinutes(settings.workHours.startTime);
-                if (currentMinutes > startMinutes + 15) { // 15 minutos de tolerância
-            
-(Content truncated due to size limit. Use line ranges to read in chunks)
+    }
+}
