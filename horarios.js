@@ -348,16 +348,4 @@ class Horarios {
         return calendarHTML;
     }
 
-    async generateScheduleStats() { // Tornar assíncrono
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = now.getMonth();
-        
-        const settings = await window.storage.getSettings(); // Aguardar
-        const workDaysConfig = settings.workHours.workDays;
-        const holidays = settings.holidays || [];
-
-        // Calcular estatísticas do mês
-        const daysInMonth = new Date(year, month + 1, 0).getDate();
-
-(Content truncated due to size limit. Use line ranges to read in chunks)
+}
