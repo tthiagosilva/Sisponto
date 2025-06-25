@@ -288,11 +288,8 @@ class Configuracoes {
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-          
-
+                  
     }
-}
+
                         
 
