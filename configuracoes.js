@@ -267,6 +267,7 @@ class Configuracoes {
                       </div>
                     </div>
                   </div>
+                  `
                 }
               }
                     
