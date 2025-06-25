@@ -4,461 +4,253 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema de Ponto Eletrônico</title>
-    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-    <style>
-        body {
-            background-color: #f3f4f6;
-        }
-        .card {
-            transition: transform 0.3s;
-        }
-        .card:hover {
-            transform: scale(1.05);
-        }
-        .sidebar {
-            transition: width 0.3s;
-        }
-        .sidebar.active {
-            width: 250px;
-        }
-        .content {
-            transition: margin-left 0.3s;
-        }
-        .content.active {
-            margin-left: 250px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body class="flex flex-col min-h-screen">
-    <!-- Sidebar -->
-    <div id="sidebar" class="sidebar bg-gray-800 text-white w-16 fixed h-full">
-        <div class="p-4">
-            <button id="toggleSidebar" class="text-white">
-                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                </svg>
-            </button>
-        </div>
-        <ul class="mt-10">
-            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="showSection('dashboard')">
-                <i class="fas fa-home mr-2"></i> <span class="menu-text hidden">Dashboard</span>
-            </li>
-            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="showSection('register')">
-                <i class="fas fa-clock mr-2"></i> <span class="menu-text hidden">Registrar Ponto</span>
-            </li>
-            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="showSection('reports')">
-                <i class="fas fa-file-alt mr-2"></i> <span class="menu-text hidden">Relatórios</span>
-            </li>
-            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="logout()">
-                <i class="fas fa-sign-out-alt mr-2"></i> <span class="menu-text hidden">Sair</span>
-            </li>
-        </ul>
+<body>
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="loading-screen">
+        <div class="loading-spinner"></div>
+        <p>Carregando Sistema de Ponto...</p>
     </div>
 
-    <!-- Main Content -->
-    <div id="content" class="content ml-16 flex-auto p-6">
-        <!-- Login Section -->
-        <div id="login-page" class="flex items-center justify-center h-full">
-            <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-                <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
-                <input id="email" type="email" placeholder="Email" class="w-full p-2 mb-4 border rounded">
-                <input id="password" type="password" placeholder="Senha" class="w-full p-2 mb-4 border rounded">
-                <button onclick="login()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Entrar</button>
-                <p class="mt-4 text-center">Não tem conta? <a href="#" onclick="showRegisterForm()" class="text-blue-500">Cadastre-se</a></p>
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-screen hidden">
+        <div class="login-container">
+            <div class="login-header">
+                <i class="fas fa-clock"></i>
+                <h1>Sistema de Ponto Eletrônico</h1>
+                <p>Faça login para acessar o sistema</p>
             </div>
-        </div>
-
-        <!-- Register Section -->
-        <div id="register-page" class="flex items-center justify-center h-full hidden">
-            <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
-                <h2 class="text-2xl font-bold mb-6 text-center">Cadastro</h2>
-                <input id="reg-email" type="email" placeholder="Email" class="w-full p-2 mb-4 border rounded">
-                <input id="reg-password" type="password" placeholder="Senha" class="w-full p-2 mb-4 border rounded">
-                <input id="reg-name" type="text" placeholder="Nome" class="w-full p-2 mb-4 border rounded">
-                <button onclick="register()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Cadastrar</button>
-                <p class="mt-4 text-center">Já tem conta? <a href="#" onclick="showLoginForm()" class="text-blue-500">Faça login</a></p>
-            </div>
-        </div>
-
-        <!-- Dashboard Section -->
-        <div id="dashboard" class="hidden">
-            <h1 class="text-3xl font-bold mb-6">Dashboard do Funcionário</h1>
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="card bg-white p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-2">Horas Trabalhadas (Semana)</h3>
-                    <p id="weekly-hours" class="text-2xl">0h 0m</p>
+            <form id="login-form" class="login-form">
+                <div class="form-group">
+                    <label for="username">Usuário</label>
+                    <input type="text" id="username" name="username" required>
                 </div>
-                <div class="card bg-white p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-2">Horas Extras</h3>
-                    <p id="extra-hours" class="text-2xl">0h 0m</p>
+                <div class="form-group">
+                    <label for="password">Senha</label>
+                    <input type="password" id="password" name="password" required>
                 </div>
-                <div class="card bg-white p-6 rounded-lg shadow-lg">
-                    <h3 class="text-xl font-semibold mb-2">Último Registro</h3>
-                    <p id="last-record" class="text-2xl">-</p>
-                </div>
-            </div>
-            <div class="mt-8">
-                <h3 class="text-xl font-semibold mb-4">Histórico de Registros (Últimos 7 dias)</h3>
-                <div id="record-history" class="bg-white p-6 rounded-lg shadow-lg">
-                    <p>Carregando...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Register Point Section -->
-        <div id="register" class="hidden">
-            <h1 class="text-3xl font-bold mb-6">Registrar Ponto</h1>
-            <div class="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto">
-                <h3 class="text-xl font-semibold mb-4">Bater Ponto</h3>
-                <p id="current-time" class="text-2xl mb-4"></p>
-                <button onclick="registerPoint()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Registrar Agora</button>
-            </div>
-        </div>
-
-        <!-- Reports Section -->
-        <div id="reports" class="hidden">
-            <h1 class="text-3xl font-bold mb-6">Relatórios</h1>
-            <div class="bg-white p-8 rounded-lg shadow-lg">
-                <h3 class="text-xl font-semibold mb-4">Gerar Relatório</h3>
-                <div class="flex flex-col md:flex-row gap-4 mb-4">
-                    <input id="report-start" type="date" class="p-2 border rounded">
-                    <input id="report-end" type="date" class="p-2 border rounded">
-                    <button onclick="generateReport()" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Gerar</button>
-                </div>
-                <div id="report-output" class="mt-4">
-                    <p>Selecione um período para gerar o relatório.</p>
-                </div>
-                <button onclick="exportReport()" class="mt-4 bg-green-500 text-white p-2 rounded hover:bg-green-600 hidden" id="export-btn">Exportar como CSV</button>
-            </div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Entrar
+                </button>
+            </form>
         </div>
     </div>
 
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyBXPvAKXvn3GS7Cwhry9JbKigEdLjmC3Ks",
-            authDomain: "pontoeletronico-36e47.firebaseapp.com",
-            projectId: "pontoeletronico-36e47",
-            storageBucket: "pontoeletronico-36e47.firebasestorage.app",
-            messagingSenderId: "705953962728",
-            appId: "1:705953962728:web:c672f04ca0fcccb2b7075d"
-        };
+    <!-- Main Application -->
+    <div id="main-app" class="main-app hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-left">
+                <h1><i class="fas fa-clock"></i> Ponto Eletrônico</h1>
+            </div>
+            <div class="header-center">
+                <div class="current-time">
+                    <span id="current-date"></span>
+                    <span id="current-time"></span>
+                </div>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <span id="user-name">Usuário</span>
+                    <span id="user-role">Funcionário</span>
+                </div>
+                <button id="logout-btn" class="btn btn-secondary">
+                    <i class="fas fa-sign-out-alt"></i>
+                    Sair
+                </button>
+            </div>
+        </header>
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        <!-- Navigation -->
+        <nav class="sidebar">
+            <ul class="nav-menu">
+                <li class="nav-item active" data-section="registro">
+                    <i class="fas fa-fingerprint"></i>
+                    <span>Registro de Ponto</span>
+                </li>
+                <li class="nav-item" data-section="dashboard">
+                    <i class="fas fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </li>
+                <li class="nav-item" data-section="relatorios">
+                    <i class="fas fa-file-alt"></i>
+                    <span>Relatórios</span>
+                </li>
+                <li class="nav-item" data-section="horarios">
+                    <i class="fas fa-calendar-alt"></i>
+                    <span>Horários</span>
+                </li>
+                <li class="nav-item" data-section="usuarios" data-role="admin">
+                    <i class="fas fa-users"></i>
+                    <span>Usuários</span>
+                </li>
+                <li class="nav-item" data-section="configuracoes">
+                    <i class="fas fa-cog"></i>
+                    <span>Configurações</span>
+                </li>
+            </ul>
+        </nav>
 
-        // Test Firestore Connection
-        db.collection('points').limit(1).get().then(snapshot => {
-            console.log('Firestore connected:', snapshot.size, 'documents found');
-        }).catch(error => {
-            console.error('Firestore error:', error);
-        });
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Registro de Ponto Section -->
+            <section id="registro-section" class="content-section active">
+                <div class="section-header">
+                    <h2><i class="fas fa-fingerprint"></i> Registro de Ponto</h2>
+                    <p>Registre sua entrada, saída e intervalos</p>
+                </div>
 
-        // Sidebar Toggle
-        document.getElementById('toggleSidebar').addEventListener('click', () => {
-            const sidebar = document.getElementById('sidebar');
-            const content = document.getElementById('content');
-            sidebar.classList.toggle('active');
-            content.classList.toggle('active');
-            document.querySelectorAll('.menu-text').forEach(text => text.classList.toggle('hidden'));
-        });
+                <div class="registro-container">
+                    <div class="registro-card">
+                        <div class="registro-status">
+                            <div class="status-indicator" id="status-indicator">
+                                <i class="fas fa-circle"></i>
+                                <span id="status-text">Fora do expediente</span>
+                            </div>
+                            <div class="last-registro" id="last-registro">
+                                Último registro: --:--
+                            </div>
+                        </div>
 
-        // Show Section
-        function showSection(section) {
-            document.querySelectorAll('#content > div').forEach(div => div.classList.add('hidden'));
-            document.getElementById(section).classList.remove('hidden');
-        }
+                        <div class="registro-buttons">
+                            <button id="btn-entrada" class="registro-btn entrada">
+                                <i class="fas fa-sign-in-alt"></i>
+                                <span>Entrada</span>
+                                <small>Registrar chegada</small>
+                            </button>
+                            <button id="btn-saida-almoco" class="registro-btn saida-almoco">
+                                <i class="fas fa-utensils"></i>
+                                <span>Saída Almoço</span>
+                                <small>Início do intervalo</small>
+                            </button>
+                            <button id="btn-volta-almoco" class="registro-btn volta-almoco">
+                                <i class="fas fa-utensils"></i>
+                                <span>Volta Almoço</span>
+                                <small>Fim do intervalo</small>
+                            </button>
+                            <button id="btn-saida" class="registro-btn saida">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>Saída</span>
+                                <small>Fim do expediente</small>
+                            </button>
+                        </div>
 
-        // Authentication
-        function showRegisterForm() {
-            document.getElementById('login-page').classList.add('hidden');
-            document.getElementById('register-page').classList.remove('hidden');
-        }
+                        <div class="registro-hoje">
+                            <h3>Registros de Hoje</h3>
+                            <div id="registros-hoje" class="registros-list">
+                                <!-- Registros serão inseridos aqui -->
+                            </div>
+                        </div>
+                    </div>
 
-        function showLoginForm() {
-            document.getElementById('register-page').classList.add('hidden');
-            document.getElementById('login-page').classList.remove('hidden');
-        }
+                    <div class="resumo-card">
+                        <h3>Resumo do Dia</h3>
+                        <div class="resumo-item">
+                            <span>Horas Trabalhadas:</span>
+                            <span id="horas-trabalhadas">00:00</span>
+                        </div>
+                        <div class="resumo-item">
+                            <span>Horas Extras:</span>
+                            <span id="horas-extras">00:00</span>
+                        </div>
+                        <div class="resumo-item">
+                            <span>Banco de Horas:</span>
+                            <span id="banco-horas">00:00</span>
+                        </div>
+                        <div class="resumo-item">
+                            <span>Status:</span>
+                            <span id="status-dia">Normal</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
 
-        function register() {
-            const email = document.getElementById('reg-email').value;
-            const password = document.getElementById('reg-password').value;
-            const name = document.getElementById('reg-name').value;
+            <!-- Dashboard Section -->
+            <section id="dashboard-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-chart-line"></i> Dashboard</h2>
+                    <p>Visão geral do seu desempenho</p>
+                </div>
+                <div class="dashboard-content">
+                    <!-- Dashboard content will be added here -->
+                </div>
+            </section>
 
-            auth.createUserWithEmailAndPassword(email, password)
-                .then(userCredential => {
-                    return db.collection('users').doc(userCredential.user.uid).set({
-                        name: name,
-                        email: email
-                    });
-                })
-                .then(() => {
-                    alert('Cadastro realizado com sucesso!');
-                    showLoginForm();
-                })
-                .catch(error => {
-                    alert('Erro: ' + error.message);
-                });
-        }
+            <!-- Relatórios Section -->
+            <section id="relatorios-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-file-alt"></i> Relatórios</h2>
+                    <p>Consulte seus registros e relatórios</p>
+                </div>
+                <div class="relatorios-content">
+                    <!-- Relatórios content will be added here -->
+                </div>
+            </section>
 
-        function login() {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            <!-- Horários Section -->
+            <section id="horarios-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-calendar-alt"></i> Horários</h2>
+                    <p>Gerencie seus horários de trabalho</p>
+                </div>
+                <div class="horarios-content">
+                    <!-- Horários content will be added here -->
+                </div>
+            </section>
 
-            auth.signInWithEmailAndPassword(email, password)
-                .then(() => {
-                    document.getElementById('login-page').classList.add('hidden');
-                    showSection('dashboard');
-                    loadDashboard();
-                })
-                .catch(error => {
-                    alert('Erro: ' + error.message);
-                });
-        }
+            <!-- Usuários Section -->
+            <section id="usuarios-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Usuários</h2>
+                    <p>Gerencie usuários do sistema</p>
+                </div>
+                <div class="usuarios-content">
+                    <!-- Usuários content will be added here -->
+                </div>
+            </section>
 
-        function logout() {
-            auth.signOut().then(() => {
-                document.querySelectorAll('#content > div').forEach(div => div.classList.add('hidden'));
-                document.getElementById('login-page').classList.remove('hidden');
-            });
-        }
+            <!-- Configurações Section -->
+            <section id="configuracoes-section" class="content-section">
+                <div class="section-header">
+                    <h2><i class="fas fa-cog"></i> Configurações</h2>
+                    <p>Configure o sistema</p>
+                </div>
+                <div class="configuracoes-content">
+                    <!-- Configurações content will be added here -->
+                </div>
+            </section>
+        </main>
+    </div>
 
-        // Check Auth State
-        auth.onAuthStateChanged(user => {
-            if (user) {
-                document.getElementById('login-page').classList.add('hidden');
-                showSection('dashboard');
-                loadDashboard();
-            } else {
-                document.querySelectorAll('#content > div').forEach(div => div.classList.add('hidden'));
-                document.getElementById('login-page').classList.remove('hidden');
-            }
-        });
+    <!-- Notification Container -->
+    <div id="notification-container" class="notification-container"></div>
 
-        // Current Time Update
-        function updateTime() {
-            const now = new Date();
-            document.getElementById('current-time').textContent = now.toLocaleString('pt-BR');
-            setTimeout(updateTime, 1000);
-        }
-        updateTime();
+    <!-- Modal Container -->
+    <div id="modal-container" class="modal-container hidden"></div>
 
-        // Register Point
-        function registerPoint() {
-            const user = auth.currentUser;
-            if (!user) {
-                alert('Faça login para registrar o ponto.');
-                return;
-            }
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+    <script src="js/firebase-init.js"></script>
 
-            const now = new Date();
-            const type = prompt('Tipo de registro (entrada, intervalo, retorno, saída):').toLowerCase();
-
-            if (['entrada', 'intervalo', 'retorno', 'saída'].includes(type)) {
-                db.collection('points').add({
-                    userId: user.uid,
-                    timestamp: firebase.firestore.Timestamp.fromDate(now),
-                    type: type
-                }).then(() => {
-                    alert('Ponto registrado com sucesso!');
-                    loadDashboard();
-                }).catch(error => {
-                    alert('Erro: ' + error.message);
-                });
-            } else {
-                alert('Tipo de registro inválido.');
-            }
-        }
-
-        // Load Dashboard
-        function loadDashboard() {
-            const user = auth.currentUser;
-            if (!user) return;
-
-            const startOfWeek = new Date();
-            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-            startOfWeek.setHours(0, 0, 0, 0);
-
-            db.collection('points')
-                .where('userId', '==', user.uid)
-                .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startOfWeek))
-                .orderBy('timestamp', 'desc')
-                .get()
-                .then(snapshot => {
-                    let weeklyHours = 0;
-                    let extraHours = 0;
-                    let lastRecord = '-';
-                    const history = [];
-
-                    const recordsByDay = {};
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const date = data.timestamp.toDate();
-                        const dayKey = date.toISOString().split('T')[0];
-
-                        if (!recordsByDay[dayKey]) recordsByDay[dayKey] = [];
-                        recordsByDay[dayKey].push({ type: data.type, time: date });
-
-                        if (!lastRecord || date > new Date(lastRecord)) {
-                            lastRecord = date.toLocaleString('pt-BR') + ` (${data.type})`;
-                        }
-                    });
-
-                    for (const day in recordsByDay) {
-                        const records = recordsByDay[day].sort((a, b) => a.time - b.time);
-                        let dailyHours = 0;
-
-                        for (let i = 0; i < records.length - 1; i++) {
-                            if (records[i].type === 'entrada' && records[i + 1].type === 'intervalo') {
-                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
-                            } else if (records[i].type === 'retorno' && records[i + 1].type === 'saída') {
-                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
-                            }
-                        }
-
-                        if (dailyHours > 8.8) { // 8h48m = 8.8 hours
-                            extraHours += dailyHours - 8.8;
-                        }
-                        weeklyHours += dailyHours;
-
-                        history.push(`<p><strong>${new Date(day).toLocaleDateString('pt-BR')}:</strong> ${records.map(r => `${r.type}: ${r.time.toLocaleTimeString('pt-BR')}`).join(', ')}</p>`);
-                    }
-
-                    document.getElementById('weekly-hours').textContent = formatHours(weeklyHours);
-                    document.getElementById('extra-hours').textContent = formatHours(extraHours);
-                    document.getElementById('last-record').textContent = lastRecord;
-                    document.getElementById('record-history').innerHTML = history.length ? history.join('') : '<p>Sem registros recentes.</p>';
-                });
-        }
-
-        // Format Hours
-        function formatHours(hours) {
-            const h = Math.floor(hours);
-            const m = Math.round((hours - h) * 60);
-            return `${h}h ${m}m`;
-        }
-
-        // Generate Report
-        function generateReport() {
-            const user = auth.currentUser;
-            if (!user) {
-                alert('Faça login para gerar relatórios.');
-                return;
-            }
-
-            const startDate = new Date(document.getElementById('report-start').value);
-            const endDate = new Date(document.getElementById('report-end').value);
-            endDate.setHours(23, 59, 59, 999);
-
-            if (!startDate || !endDate || startDate > endDate) {
-                alert('Selecione um período válido.');
-                return;
-            }
-
-            db.collection('points')
-                .where('userId', '==', user.uid)
-                .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startDate))
-                .where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endDate))
-                .orderBy('timestamp')
-                .get()
-                .then(snapshot => {
-                    const reportData = [];
-                    const recordsByDay = {};
-
-                    snapshot.forEach(doc => {
-                        const data = doc.data();
-                        const date = data.timestamp.toDate();
-                        const dayKey = date.toISOString().split('T')[0];
-
-                        if (!recordsByDay[dayKey]) recordsByDay[dayKey] = [];
-                        recordsByDay[dayKey].push({ type: data.type, time: date });
-                    });
-
-                    let totalHours = 0;
-                    let totalExtra = 0;
-
-                    for (const day in recordsByDay) {
-                        const records = recordsByDay[day].sort((a, b) => a.time - b.time);
-                        let dailyHours = 0;
-
-                        for (let i = 0; i < records.length - 1; i++) {
-                            if (records[i].type === 'entrada' && records[i + 1].type === 'intervalo') {
-                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
-                            } else if (records[i].type === 'retorno' && records[i + 1].type === 'saída') {
-                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
-                            }
-                        }
-
-                        if (dailyHours > 8.8) {
-                            totalExtra += dailyHours - 8.8;
-                        }
-                        totalHours += dailyHours;
-
-                        reportData.push({
-                            date: day,
-                            hours: formatHours(dailyHours),
-                            records: records.map(r => `${r.type}: ${r.time.toLocaleTimeString('pt-BR')}`).join(', ')
-                        });
-                    }
-
-                    const output = `
-                        <h4 class="text-lg font-semibold mb-2">Relatório de ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}</h4>
-                        <p><strong>Total de Horas:</strong> ${formatHours(totalHours)}</p>
-                        <p><strong>Horas Extras:</strong> ${formatHours(totalExtra)}</p>
-                        <table class="w-full mt-4 border-collapse">
-                            <thead>
-                                <tr class="bg-gray-200">
-                                    <th class="p-2 border">Data</th>
-                                    <th class="p-2 border">Horas</th>
-                                    <th class="p-2 border">Registros</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${reportData.map(row => `
-                                    <tr>
-                                        <td class="p-2 border">${new Date(row.date).toLocaleDateString('pt-BR')}</td>
-                                        <td class="p-2 border">${row.hours}</td>
-                                        <td class="p-2 border">${row.records}</td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
-
-                    document.getElementById('report-output').innerHTML = output;
-                    document.getElementById('export-btn').classList.remove('hidden');
-                    window.reportData = reportData; // Store for export
-                });
-        }
-
-        // Export Report
-        function exportReport() {
-            if (!window.reportData) {
-                alert('Gere um relatório primeiro.');
-                return;
-            }
-
-            const csv = [
-                ['Data', 'Horas', 'Registros'],
-                ...window.reportData.map(row => [
-                    new Date(row.date).toLocaleDateString('pt-BR'),
-                    row.hours,
-                    `"${row.records}"`
-                ])
-            ].map(row => row.join(',')).join('\n');
-
-            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(blob);
-            link.download = 'relatorio_ponto.csv';
-            link.click();
-        }
-    </script>
+    <script src="js/utils.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/registro.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/relatorios.js"></script>
+    <script src="js/usuarios.js"></script>
+    <script src="js/horarios.js"></script>
+    <script src="js/configuracoes.js"></script>
+    <script src="js/notifications.js"></script>
+    <script src="js/app.js"></script>
 </body>
 </html>
+
