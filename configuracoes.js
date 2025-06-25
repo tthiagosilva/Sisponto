@@ -60,7 +60,7 @@ class Configuracoes {
     }
 
     loadConfiguracoesContent() {
-        
+    
         const configContent = document.querySelector("#configuracoes-section .configuracoes-content");
         if (!configContent) return;
 
@@ -267,29 +267,15 @@ class Configuracoes {
                         </div>
                     </div>
 
-                    ${this.currentUser.role === "admin" ? `
-                        <!-- Aba Empresa -->
-                        <div id="company-tab" class="tab-content">
-                            <div class="config-section">
-                                <h3>Informações da Empresa</h3>
-                                <p>Configure os dados da sua empresa</p>
-                                
-                                <div class="config-card">
-                                    <div class="form-row">
-                                        <div class="form-group">
-                                            <label for="company-name">Nome da Empresa</label>
-                                            <input type="text" id="company-name" value="${this.settings.company.name}">
-                                        </div>
-                                        <div class="form-group">
-                                            <label for="company-cnpj">CNPJ</label>
-                                            <input type="text" id="company-cnpj" value="${this.settings.company.cnpj}" placeholder="00.0>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                  
+                </div>
+            </div>
+        </div>
+              
     }
+  }
+
+
+    
 
                         
 
