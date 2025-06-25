@@ -273,9 +273,3 @@ class Configuracoes {
               
     }
   }
-
-
-    
-
-                        
-
