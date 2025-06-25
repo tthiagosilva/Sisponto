@@ -347,21 +347,5 @@ class Relatorios {
             delays: 0
         };
 
-        const processedRecords = Object.keys(dailyReports).map(date => {
-            const report = dailyReports[date];
-            
-            summary.totalHours += report.horasTrabalhadas;
-            summary.overtimeHours += report.horasExtras;
-            
-            // Verificar faltas e atrasos
-            // Precisamos das configurações para verificar dias úteis
-            // Por simplicidade, vamos assumir dias úteis padrão (seg-sex) por enquanto
-            // Ou buscar as configurações aqui, mas isso adicionaria mais awaits
-            // Para este módulo, vamos simplificar e assumir que o isWorkDay já tem a lógica
-            if (Utils.isWorkDay(new Date(date))) {
-                if (report.horasTrabalhadas === 0) {
-                    summary.absences++;
-                } else if (report.entrada) {
-                    const entradaMinutes = Utils.timeToMinutes(report.entrada);
-                
-(Content truncated due to size limit. Use line ranges to read in chunks)
+    }
+}
