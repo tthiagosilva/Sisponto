@@ -1,0 +1,499 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+      </script><!DOCTYPE html>
+	  
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0>
+    <title>Sistema de Ponto Eletrônico</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.3/dist/tailwind.min.css" rel="stylesheet">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firestore.js"></script>
+    
+	<style>
+        body {
+            background-color: #f3f4f6;
+        }
+        .card {
+            transition: transform 0.3s;
+        }
+        .card:hover {
+            transform: scale(1.05);
+        }
+        .sidebar {
+            transition: width 0.3s;
+        }
+        .sidebar.active {
+            width: 250px;
+        }
+        .content {
+            transition: margin-left 0.3s;
+        }
+        .content.active {
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+
+
+    <!-- Sidebar -->
+    <div id="sidebar" class="sidebar bg-gray-800 text-white w-16 fixed h-full">
+        <div class="p-4">
+            <button id="toggleSidebar" class="text-white">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                </svg>
+            </button>
+        </div>
+        <ul class="mt-10">
+            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="showSection('dashboard')">
+                <i class="fas fa-home mr-2"></i> <span class="menu-text hidden">Dashboard</span>
+            </li>
+            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="showSection('register')">
+                <i class="fas fa-clock mr-2"></i> <span class="menu-text hidden">Registrar Ponto</span>
+            </li>
+            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="showSection('reports')">
+                <i class="fas fa-file-alt mr-2"></i> <span class="menu-text hidden">Relatórios</span>
+            </li>
+            <li class="p-4 hover:bg-gray-700 cursor-pointer" onclick="logout()">
+                <i class="fas fa-sign-out-alt mr-2"></i> <span class="menu-text hidden">Sair</span>
+            </li>
+        </ul>
+    </div>
+
+    <!-- Main Content -->
+    <div id="content" class="content ml-16 flex-auto p-6">
+        <!-- Login Section -->
+        <div id="login-page" class="flex items-center justify-center h-full">
+            <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+                <h2 class="text-2xl font-bold mb-6 text-center">Login</h2>
+                <input id="email" type="email" placeholder="Email" class="w-full p-2 mb-4 border rounded">
+                <input id="password" type="password" placeholder="Senha" class="w-full p-2 mb-4 border rounded">
+                <button onclick="login()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Entrar</button>
+                <p class="mt-4 text-center">Não tem conta? <a href="#" onclick="showRegisterForm()" class="text-blue-500">Cadastre-se</a></p>
+            </div>
+        </div>
+
+        <!-- Register Section -->
+        <div id="register-page" class="flex items-center justify-center h-full hidden">
+            <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-md">
+                <h2 class="text-2xl font-bold mb-6 text-center">Cadastro</h2>
+                <input id="reg-email" type="email" placeholder="Email" class="w-full p-2 mb-4 border rounded">
+                <input id="reg-password" type="password" placeholder="Senha" class="w-full p-2 mb-4 border rounded">
+                <input id="reg-name" type="text" placeholder="Nome" class="w-full p-2 mb-4 border rounded">
+                <button onclick="register()" class="w-full bg-green-500 text-white p-2 rounded hover:bg-green-600">Cadastrar</button>
+                <p class="mt-4 text-center">Já tem conta? <a href="#" onclick="showLoginForm()" class="text-blue-500">Faça login</a></p>
+            </div>
+        </div>
+
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="hidden">
+            <h1 class="text-3xl font-bold mb-6">Dashboard do Funcionário</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div class="card bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-2">Horas Trabalhadas (Semana)</h3>
+                    <p id="weekly-hours" class="text-2xl">0h 0m</p>
+                </div>
+                <div class="card bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-2">Horas Extras</h3>
+                    <p id="extra-hours" class="text-2xl">0h 0m</p>
+                </div>
+                <div class="card bg-white p-6 rounded-lg shadow-lg">
+                    <h3 class="text-xl font-semibold mb-2">Último Registro</h3>
+                    <p id="last-record" class="text-2xl">-</p>
+                </div>
+            </div>
+            <div class="mt-8">
+                <h3 class="text-xl font-semibold mb-4">Histórico de Registros (Últimos 7 dias)</h3>
+                <div id="record-history" class="bg-white p-6 rounded-lg shadow-lg">
+                    <p>Carregando...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Register Point Section -->
+        <div id="register" class="hidden">
+            <h1 class="text-3xl font-bold mb-6">Registrar Ponto</h1>
+            <div class="bg-white p-8 rounded-lg shadow-lg max-w-md mx-auto">
+                <h3 class="text-xl font-semibold mb-4">Bater Ponto</h3>
+                <p id="current-time" class="text-2xl mb-4"></p>
+                <button onclick="registerPoint()" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Registrar Agora</button>
+            </div>
+        </div>
+
+        <!-- Reports Section -->
+        <div id="reports" class="hidden">
+            <h1 class="text-3xl font-bold mb-6">Relatórios</h1>
+            <div class="bg-white p-8 rounded-lg shadow-lg">
+                <h3 class="text-xl font-semibold mb-4">Gerar Relatório</h3>
+                <div class="flex flex-col md:flex-row gap-4 mb-4">
+                    <input id="report-start" type="date" class="p-2 border rounded">
+                    <input id="report-end" type="date" class="p-2 border rounded">
+                    <button onclick="generateReport()" class="bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Gerar</button>
+                </div>
+                <div id="report-output" class="mt-4">
+                    <p>Selecione um período para gerar o relatório.</p>
+                </div>
+                <button onclick="exportReport()" class="mt-4 bg-green-500 text-white p-2 rounded hover:bg-green-600 hidden" id="export-btn">Exportar como CSV</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase Configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBXPvAKXvn3GS7Cwhry9JbKigEdLjmC3Ks",
+            authDomain: "pontoeletronico-36e47.firebaseapp.com",
+            projectId: "pontoeletronico-36e47",
+            storageBucket: "pontoeletronico-36e47.firebasestorage.app",
+            messagingSenderId: "705953962728",
+            appId: "1:705953962728:web:c672f04ca0fcccb2b7075d"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const auth = firebase.auth();
+        const db = firebase.firestore();
+
+        // Sidebar Toggle
+        document.getElementById('toggleSidebar').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            const content = document.getElementById('content');
+            sidebar.classList.toggle('active');
+            content.classList.toggle('active');
+            document.querySelectorAll('.menu-text').forEach(text => text.classList.toggle('hidden'));
+        });
+
+        // Show Section
+        function showSection(section) {
+            document.querySelectorAll('#content > div').forEach(div => div.classList.add('hidden'));
+            document.getElementById(section).classList.remove('hidden');
+        }
+
+        // Authentication
+        function showRegisterForm() {
+            document.getElementById('login-page').classList.add('hidden');
+            document.getElementById('register-page').classList.remove('hidden');
+        }
+
+        function showLoginForm() {
+            document.getElementById('register-page').classList.add('hidden');
+            document.getElementById('login-page').classList.remove('hidden');
+        }
+
+        function register() {
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            const name = document.getElementById('reg-name').value;
+
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(userCredential => {
+                    return db.collection('users').doc(userCredential.user.uid).set({
+                        name: name,
+                        email: email
+                    });
+                })
+                .then(() => {
+                    alert('Cadastro realizado com sucesso!');
+                    showLoginForm();
+                })
+                .catch(error => {
+                    alert('Erro: ' + error.message);
+                });
+        }
+
+        function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    document.getElementById('login-page').classList.add('hidden');
+                    showSection('dashboard');
+                    loadDashboard();
+                })
+                .catch(error => {
+                    alert('Erro: ' + error.message);
+                });
+        }
+
+        function logout() {
+            auth.signOut().then(() => {
+                document.querySelectorAll('#content > div').forEach(div => div.classList.add('hidden'));
+                document.getElementById('login-page').classList.remove('hidden');
+            });
+        }
+
+        // Check Auth State
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                document.getElementById('login-page').classList.add('hidden');
+                showSection('dashboard');
+                loadDashboard();
+            } else {
+                document.querySelectorAll('#content > div').forEach(div => div.classList.add('hidden'));
+                document.getElementById('login-page').classList.remove('hidden');
+            }
+        });
+
+        // Current Time Update
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('current-time').textContent = now.toLocaleString('pt-BR');
+            setTimeout(updateTime, 1000);
+        }
+        updateTime();
+
+        // Register Point
+        function registerPoint() {
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Faça login para registrar o ponto.');
+                return;
+            }
+
+            const now = new Date();
+            const type = prompt('Tipo de registro (entrada, intervalo, retorno, saída):').toLowerCase();
+
+            if (['entrada', 'intervalo', 'retorno', 'saída'].includes(type)) {
+                db.collection('points').add({
+                    userId: user.uid,
+                    timestamp: firebase.firestore.Timestamp.fromDate(now),
+                    type: type
+                }).then(() => {
+                    alert('Ponto registrado com sucesso!');
+                    loadDashboard();
+                }).catch(error => {
+                    alert('Erro: ' + error.message);
+                });
+            } else {
+                alert('Tipo de registro inválido.');
+            }
+        }
+
+        // Load Dashboard
+        function loadDashboard() {
+            const user = auth.currentUser;
+            if (!user) return;
+
+            const startOfWeek = new Date();
+            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            db.collection('points')
+                .where('userId', '==', user.uid)
+                .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startOfWeek))
+                .orderBy('timestamp', 'desc')
+                .get()
+                .then(snapshot => {
+                    let weeklyHours = 0;
+                    let extraHours = 0;
+                    let lastRecord = '-';
+                    const history = [];
+
+                    const recordsByDay = {};
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const date = data.timestamp.toDate();
+                        const dayKey = date.toISOString().split('T')[0];
+
+                        if (!recordsByDay[dayKey]) recordsByDay[dayKey] = [];
+                        recordsByDay[dayKey].push({ type: data.type, time: date });
+
+                        if (!lastRecord || date > new Date(lastRecord)) {
+                            lastRecord = date.toLocaleString('pt-BR') + ` (${data.type})`;
+                        }
+                    });
+
+                    for (const day in recordsByDay) {
+                        const records = recordsByDay[day].sort((a, b) => a.time - b.time);
+                        let dailyHours = 0;
+
+                        for (let i = 0; i < records.length - 1; i++) {
+                            if (records[i].type === 'entrada' && records[i + 1].type === 'intervalo') {
+                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
+                            } else if (records[i].type === 'retorno' && records[i + 1].type === 'saída') {
+                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
+                            }
+                        }
+
+                        if (dailyHours > 8.8) { // 8h48m = 8.8 hours
+                            extraHours += dailyHours - 8.8;
+                        }
+                        weeklyHours += dailyHours;
+
+                        history.push(`<p><strong>${new Date(day).toLocaleDateString('pt-BR')}:</strong> ${records.map(r => `${r.type}: ${r.time.toLocaleTimeString('pt-BR')}`).join(', ')}</p>`);
+                    }
+
+                    document.getElementById('weekly-hours').textContent = formatHours(weeklyHours);
+                    document.getElementById('extra-hours').textContent = formatHours(extraHours);
+                    document.getElementById('last-record').textContent = lastRecord;
+                    document.getElementById('record-history').innerHTML = history.length ? history.join('') : '<p>Sem registros recentes.</p>';
+                });
+        }
+
+        // Format Hours
+        function formatHours(hours) {
+            const h = Math.floor(hours);
+            const m = Math.round((hours - h) * 60);
+            return `${h}h ${m}m`;
+        }
+
+        // Generate Report
+        function generateReport() {
+            const user = auth.currentUser;
+            if (!user) {
+                alert('Faça login para gerar relatórios.');
+                return;
+            }
+
+            const startDate = new Date(document.getElementById('report-start').value);
+            const endDate = new Date(document.getElementById('report-end').value);
+            endDate.setHours(23, 59, 59, 999);
+
+            if (!startDate || !endDate || startDate > endDate) {
+                alert('Selecione um período válido.');
+                return;
+            }
+
+            db.collection('points')
+                .where('userId', '==', user.uid)
+                .where('timestamp', '>=', firebase.firestore.Timestamp.fromDate(startDate))
+                .where('timestamp', '<=', firebase.firestore.Timestamp.fromDate(endDate))
+                .orderBy('timestamp')
+                .get()
+                .then(snapshot => {
+                    const reportData = [];
+                    const recordsByDay = {};
+
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        const date = data.timestamp.toDate();
+                        const dayKey = date.toISOString().split('T')[0];
+
+                        if (!recordsByDay[dayKey]) recordsByDay[dayKey] = [];
+                        recordsByDay[dayKey].push({ type: data.type, time: date });
+                    });
+
+                    let totalHours = 0;
+                    let totalExtra = 0;
+
+                    for (const day in recordsByDay) {
+                        const records = recordsByDay[day].sort((a, b) => a.time - b.time);
+                        let dailyHours = 0;
+
+                        for (let i = 0; i < records.length - 1; i++) {
+                            if (records[i].type === 'entrada' && records[i + 1].type === 'intervalo') {
+                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
+                            } else if (records[i].type === 'retorno' && records[i + 1].type === 'saída') {
+                                dailyHours += (records[i + 1].time - records[i].time) / 3600000;
+                            }
+                        }
+
+                        if (dailyHours > 8.8) {
+                            totalExtra += dailyHours - 8.8;
+                        }
+                        totalHours += dailyHours;
+
+                        reportData.push({
+                            date: day,
+                            hours: formatHours(dailyHours),
+                            records: records.map(r => `${r.type}: ${r.time.toLocaleTimeString('pt-BR')}`).join(', ')
+                        });
+                    }
+
+                    const output = `
+                        <h4 class="text-lg font-semibold mb-2">Relatório de ${startDate.toLocaleDateString('pt-BR')} a ${endDate.toLocaleDateString('pt-BR')}</h4>
+                        <p><strong>Total de Horas:</strong> ${formatHours(totalHours)}</p>
+                        <p><strong>Horas Extras:</strong> ${formatHours(totalExtra)}</p>
+                        <table class="w-full mt-4 border-collapse">
+                            <thead>
+                                <tr class="bg-gray-200">
+                                    <th class="p-2 border">Data</th>
+                                    <th class="p-2 border">Horas</th>
+                                    <th class="p-2 border">Registros</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${reportData.map(row => `
+                                    <tr>
+                                        <td class="p-2 border">${new Date(row.date).toLocaleDateString('pt-BR')}</td>
+                                        <td class="p-2 border">${row.hours}</td>
+                                        <td class="p-2 border">${row.records}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+
+                    document.getElementById('report-output').innerHTML = output;
+                    document.getElementById('export-btn').classList.remove('hidden');
+                    window.reportData = reportData; // Store for export
+                });
+        }
+
+        // Export Report
+        function exportReport() {
+            if (!window.reportData) {
+                alert('Gere um relatório primeiro.');
+                return;
+            }
+
+            const csv = [
+                ['Data', 'Horas', 'Registros'],
+                ...window.reportData.map(row => [
+                    new Date(row.date).toLocaleDateString('pt-BR'),
+                    row.hours,
+                    `"${row.records}"`
+                ])
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'relatorio_ponto.csv';
+            link.click();
+        }
+    </script>
+</body>
+</html>
