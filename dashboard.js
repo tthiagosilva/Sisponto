@@ -408,12 +408,6 @@ class Dashboard {
             "saida": "Saída"
         };
 
-        activityList.innerHTML = recentRecords.map(record => {
-            const recordDate = new Date(record.timestamp);
-            const isToday = Utils.getDateString(recordDate) === Utils.getDateString(new Date());
-            
-            return `
-                <div class="activity-item">
-                    <div class="activity-icon">
-                 
-(Content truncated due to size limit. Use line ranges to read in chunks)
+    }
+}
+    
