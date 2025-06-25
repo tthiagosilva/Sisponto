@@ -283,4 +283,3 @@ class Configuracoes {
                                             <label for="company-cnpj">CNPJ</label>
                                             <input type="text" id="company-cnpj" value="${this.settings.company.cnpj}" placeholder="00.0>
                                         </div>
-(Content truncated due to size limit. Use line ranges to read in chunks)
