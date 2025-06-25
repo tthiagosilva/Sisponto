@@ -60,6 +60,7 @@ class Configuracoes {
     }
 
     loadConfiguracoesContent() {
+        
         const configContent = document.querySelector("#configuracoes-section .configuracoes-content");
         if (!configContent) return;
 
@@ -283,3 +284,14 @@ class Configuracoes {
                                             <label for="company-cnpj">CNPJ</label>
                                             <input type="text" id="company-cnpj" value="${this.settings.company.cnpj}" placeholder="00.0>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+    }
+}
+                        
