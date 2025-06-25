@@ -1,10 +1,8 @@
-```javascript
 // Módulo de Configurações
 class Configuracoes {
     constructor() {
         this.currentUser = null;
         this.settings = {};
-        this.activeTabId = null;
         this.init();
     }
 
@@ -12,18 +10,18 @@ class Configuracoes {
         // O refresh inicial será chamado pelo app.js ou auth.js após o login
     }
 
-    async refresh() {
-        this.currentUser = window.auth.getCurrentUser();
+    async refresh() { // Tornar assíncrono
+        this.currentUser = window.auth.getCurrentUser(); // Usar window.auth
         if (!this.currentUser) return;
 
-        await this.loadSettings();
+        await this.loadSettings(); // Aguardar
         this.loadConfiguracoesContent();
         this.setupEventListeners();
-        this.activateTab(this.activeTabId || "schedule-tab");
+        this.activateTab(this.activeTabId || "schedule-tab"); // Ativar a última aba visitada ou a padrão
     }
 
-    async loadSettings() {
-        this.settings = await window.storage.getSettings();
+    async loadSettings() { // Tornar assíncrono
+        this.settings = await window.storage.getSettings(); // Usar window.storage
     }
 
     getDefaultSettings() {
@@ -32,7 +30,7 @@ class Configuracoes {
                 workDays: ["monday", "tuesday", "wednesday", "thursday", "friday"],
                 startTime: "08:00",
                 endTime: "17:00",
-                lunchBreak: 60,
+                lunchBreak: 60, // minutos
                 weeklyHours: 44,
                 toleranceMinutes: 15
             },
@@ -48,7 +46,7 @@ class Configuracoes {
                 language: "pt-BR",
                 dateFormat: "DD/MM/YYYY",
                 timeFormat: "24h",
-                autoLogout: 480
+                autoLogout: 480 // minutos
             },
             holidays: [],
             company: {
@@ -85,7 +83,7 @@ class Configuracoes {
                         <i class="fas fa-calendar"></i>
                         Feriados
                     </button>
-                    ${this.currentUser && this.currentUser.role === "admin" ? `
+                    ${this.currentUser.role === "admin" ? `
                         <button class="tab-btn" data-tab="company">
                             <i class="fas fa-building"></i>
                             Empresa
@@ -266,144 +264,11 @@ class Configuracoes {
                                 ${this.generateHolidaysList()}
                             </div>
                         </div>
+                      </div>
                     </div>
+                  </div>
+                }
+              }
+                    
 
-                    <!-- Aba Empresa (Admin Only) -->
-                    ${this.currentUser && this.currentUser.role === "admin" ? `
-                    <div id="company-tab" class="tab-content">
-                        <div class="config-section">
-                            <h3>Informações da Empresa</h3>
-                            <p>Configure os detalhes da empresa</p>
-                            
-                            <div class="config-grid">
-                                <div class="config-card">
-                                    <h4>Dados da Empresa</h4>
-                                    <div class="form-group">
-                                        <label for="company-name">Nome da Empresa</label>
-                                        <input type="text" id="company-name" value="${this.settings.company.name}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="company-cnpj">CNPJ</label>
-                                        <input type="text" id="company-cnpj" value="${this.settings.company.cnpj}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="company-address">Endereço</label>
-                                        <input type="text" id="company-address" value="${this.settings.company.address}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="company-phone">Telefone</label>
-                                        <input type="text" id="company-phone" value="${this.settings.company.phone}">
-                                    </div>
-                                    <div class="form-group">
-                                        <label for="company-email">E-mail</label>
-                                        <input type="email" id="company-email" value="${this.settings.company.email}">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    ` : ""}
-                </div>
-            </div>
-        `; // Close template literal
-    }
-
-    generateWorkDaysCheckboxes() {
-        const days = [
-            { value: "monday", label: "Primeiro" },
-            { value: "tuesday", label: "Segundo" },
-            { value: "wednesday", label: "Terceiro" },
-            { value: "thursday", label: "Quarto" },
-            { value: "friday", label: "Quinto" },
-            { value: "saturday", label: "Sexto" },
-            { value: "sunday", label: "Sétimo" }
-        ];
-
-        return days.map(day => `
-            <label class="checkbox-item">
-                <input type="checkbox" value="${day.value}" ${this.settings.workHours.workDays.includes(day.value) ? "checked" : ""}>
-                <span class="checkbox"></span>
-                <span>${day.label}</span>
-            </label>
-        `).join('');
-    }
-
-    generateHolidaysList() {
-        return this.settings.holidays.map(holiday => `
-            <div class="holiday-item">
-                <span>${holiday.date} - ${holiday.name}</span>
-                <button class="delete-btn" data-id="${holiday.id}">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        `).join('');
-    }
-
-    setupEventListeners() {
-        const tabs = document.querySelectorAll(".tab-btn");
-        tabs.forEach(tab => {
-            tab.addEventListener("click", () => {
-                const tabId = tab.getAttribute("data-tab");
-                this.activateTab(tabId);
-            });
-        });
-
-        // Placeholder para outros eventos (e.g., salvar configurações, adicionar feriado)
-        const saveButton = document.querySelector("#save-settings-btn");
-        if (saveButton) {
-            saveButton.addEventListener("click", () => this.saveSettings());
-        }
-    }
-
-    activateTab(tabId) {
-        const tabs = document.querySelectorAll(".tab-btn");
-        const contents = document.querySelectorAll(".tab-content");
-
-        tabs.forEach(tab => tab.classList.remove("active"));
-        contents.forEach(content => content.classList.remove("active"));
-
-        const activeTab = document.querySelector(`[data-tab="${tabId}"]`);
-        const activeContent = document.getElementById(`${tabId}-tab`);
-
-        if (activeTab && activeContent) {
-            activeTab.classList.add("active");
-            activeContent.classList.add("active");
-            this.activeTabId = tabId;
-        }
-    }
-
-    async saveSettings() {
-        // Placeholder para salvar configurações no Firestore
-        const updatedSettings = {
-            workHours: {
-                startTime: document.getElementById("start-time").value,
-                endTime: document.getElementById("end-time").value,
-                lunchBreak: parseInt(document.getElementById("lunch-break").value),
-                weeklyHours: parseInt(document.getElementById("weekly-hours").value),
-                toleranceMinutes: parseInt(document.getElementById("tolerance").value),
-                workDays: Array.from(document.querySelectorAll(".work-days input:checked")).map(input => input.value)
-            },
-            notifications: {
-                emailNotifications: document.getElementById("email-notifications").checked,
-                browserNotifications: document.getElementById("browser-notifications").checked,
-                overtimeAlert: document.getElementById("overtime-alert").checked,
-                absenceAlert: document.getElementById("absence-alert").checked,
-                reminderBeforeEnd: parseInt(document.getElementById("reminder-time").value)
-            },
-            system: {
-                theme: document.getElementById("theme").value,
-                language: document.getElementById("language").value,
-                dateFormat: document.getElementById("date-format").value,
-                timeFormat: document.getElementById("time-format").value,
-                autoLogout: parseInt(document.getElementById("auto-logout").value)
-            }
-            // Adicionar feriados e empresa conforme necessário
-        };
-
-        await window.storage.saveSettings(updatedSettings);
-        alert("Configurações salvas com sucesso!");
-    }
-}
-
-export default Configuracoes;
-```
+                   
