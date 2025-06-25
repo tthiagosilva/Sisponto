@@ -356,5 +356,5 @@ class Usuarios {
         }
 
         // Aplicar filtro de status
-  
-(Content truncated due to size limit. Use line ranges to read in chunks)
+    }
+}
