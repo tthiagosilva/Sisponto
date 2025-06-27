@@ -1,4 +1,13 @@
-// Sistema de autenticação com Firebase
+import { auth as firebaseAuth } from "./firebase-init.js";
+import { db as firebaseDb } from "./firebase-init.js";
+import { 
+    signInWithEmailAndPassword, 
+    onAuthStateChanged, 
+    signOut, 
+    createUserWithEmailAndPassword, 
+    updatePassword 
+} from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
 class Auth {
     constructor() {
         this.currentUser = null;
@@ -7,7 +16,7 @@ class Auth {
 
     init() {
         // Observar o estado de autenticação do Firebase
-        firebaseAuth.onAuthStateChanged(async (user) => {
+        onAuthStateChanged(firebaseAuth, async (user) => {
             if (user) {
                 // Usuário logado no Firebase
                 // Buscar dados adicionais do usuário no Firestore
@@ -17,9 +26,10 @@ class Auth {
                     this.loginSuccess(this.currentUser);
                 } else {
                     // Se o usuário existe no Auth mas não no Firestore, pode ser um novo registro
-                    // Ou um erro. Por enquanto, vamos deslogar.
+                    // Ou um erro. Por enquanto, vamos deslogar e pedir para o admin criar o perfil.
                     console.error("Usuário autenticado, mas dados não encontrados no Firestore.");
-                    firebaseAuth.signOut();
+                    notifications.show("error", "Erro de Perfil", "Seu perfil não foi encontrado. Contate o administrador.");
+                    signOut(firebaseAuth);
                 }
             } else {
                 // Usuário deslogado
@@ -52,7 +62,7 @@ class Auth {
             logoutBtn.addEventListener("click", async () => {
                 if (confirm("Deseja realmente sair do sistema?")) {
                     try {
-                        await firebaseAuth.signOut();
+                        await signOut(firebaseAuth);
                         notifications.show("info", "Logout realizado", "Você foi desconectado do sistema.");
                     } catch (error) {
                         console.error("Erro ao fazer logout:", error);
@@ -75,7 +85,7 @@ class Auth {
         this.showLoginLoading(true);
 
         try {
-            const userCredential = await firebaseAuth.signInWithEmailAndPassword(email, password);
+            await signInWithEmailAndPassword(firebaseAuth, email, password);
             // onAuthStateChanged vai lidar com o loginSuccess
         } catch (error) {
             console.error("Erro de login:", error);
@@ -84,6 +94,8 @@ class Auth {
                 errorMessage = "Usuário ou senha inválidos.";
             } else if (error.code === "auth/invalid-email") {
                 errorMessage = "Formato de e-mail inválido.";
+            } else if (error.code === "auth/too-many-requests") {
+                errorMessage = "Muitas tentativas de login. Tente novamente mais tarde.";
             }
             this.showLoginError(errorMessage);
         } finally {
@@ -104,8 +116,8 @@ class Auth {
         // Mostrar notificação de boas-vindas
         notifications.show("success", `${Utils.getGreeting()}, ${user.name}!`, "Login realizado com sucesso.");
         
-        // Verificar registros pendentes (ainda depende de storage.js por enquanto)
-        // this.checkPendingRecords(); 
+        // Inicializar módulos após login
+        window.app.initModules();
     }
 
     showMainApp() {
@@ -235,52 +247,14 @@ class Auth {
         });
     }
 
-    // checkPendingRecords() {
-    //     if (!this.currentUser) return;
-
-    //     const today = Utils.getDateString();
-    //     const todayRecords = storage.getTimeRecords(this.currentUser.id, today);
-        
-    //     // Verificar se é dia útil
-    //     if (!Utils.isWorkDay()) {
-    //         return;
-    //     }
-
-    //     // Verificar registros pendentes
-    //     const now = new Date();
-    //     const currentHour = now.getHours();
-        
-    //     // Se já passou das 9h e não tem entrada
-    //     if (currentHour >= 9 && !todayRecords.find(r => r.type === "entrada")) {
-    //         notifications.show("warning", "Registro pendente", "Você ainda não registrou sua entrada hoje.");
-    //     }
-        
-    //     // Se já passou das 12h30 e não tem saída para almoço
-    //     if (currentHour >= 12 && currentHour < 14 && 
-    //         todayRecords.find(r => r.type === "entrada") && 
-    //         !todayRecords.find(r => r.type === "saida_almoco")) {
-    //         notifications.show("info", "Hora do almoço", "Não se esqueça de registrar sua saída para o almoço.");
-    //     }
-        
-    //     // Se já passou das 18h e não tem saída
-    //     if (currentHour >= 18 && 
-    //         todayRecords.find(r => r.type === "entrada") && 
-    //         !todayRecords.find(r => r.type === "saida")) {
-    //         notifications.show("warning", "Fim do expediente", "Não se esqueça de registrar sua saída.");
-    //     }
-    // }
-
-    // Verificar se usuário está logado
     isLoggedIn() {
         return this.currentUser !== null;
     }
 
-    // Obter usuário atual
     getCurrentUser() {
         return this.currentUser;
     }
 
-    // Verificar permissão
     hasPermission(permission) {
         if (!this.currentUser) return false;
         
@@ -294,7 +268,6 @@ class Auth {
         return userPermissions.includes(permission);
     }
 
-    // Verificar se pode acessar seção
     canAccessSection(section) {
         if (!this.currentUser) return false;
         
@@ -316,7 +289,6 @@ class Auth {
         return false;
     }
 
-    // Método para alterar senha (agora via Firebase Auth)
     async changePassword(newPassword) {
         if (!this.currentUser || !firebaseAuth.currentUser) {
             return { success: false, message: "Nenhum usuário logado." };
@@ -327,9 +299,7 @@ class Auth {
         }
 
         try {
-            await firebaseAuth.currentUser.updatePassword(newPassword);
-            // Atualizar no Firestore também se a senha for armazenada lá (não recomendado)
-            // Ou apenas notificar sucesso
+            await updatePassword(firebaseAuth.currentUser, newPassword);
             return { success: true, message: "Senha alterada com sucesso." };
         } catch (error) {
             console.error("Erro ao alterar senha:", error);
@@ -341,10 +311,9 @@ class Auth {
         }
     }
 
-    // Método para criar novo usuário (apenas para admin)
     async createFirebaseUser(email, password, userData) {
         try {
-            const userCredential = await firebaseAuth.createUserWithEmailAndPassword(email, password);
+            const userCredential = await createUserWithEmailAndPassword(firebaseAuth, email, password);
             const user = userCredential.user;
 
             // Salvar dados adicionais do usuário no Firestore
@@ -371,7 +340,6 @@ class Auth {
         }
     }
 
-    // Método para atualizar usuário (Firestore)
     async updateFirebaseUser(uid, userData) {
         try {
             await firebaseDb.collection("users").doc(uid).update({
@@ -385,18 +353,16 @@ class Auth {
         }
     }
 
-    // Método para deletar usuário (Firebase Auth e Firestore)
     async deleteFirebaseUser(uid) {
         try {
             // Deletar do Firestore primeiro
             await firebaseDb.collection("users").doc(uid).delete();
             
-            // Deletar do Firebase Auth (requer que o usuário esteja logado ou admin SDK)
-            // Para o frontend, o usuário precisa estar logado para deletar a própria conta
-            // Ou um admin logado para deletar outros usuários (com reautenticação)
-            // Por simplicidade, vamos assumir que a deleção de outros usuários será feita por um admin
-            // e pode exigir reautenticação ou ser feita via Cloud Functions para maior segurança.
-            // Por enquanto, vamos apenas deletar do Firestore.
+            // Para deletar do Firebase Auth, é mais complexo no frontend
+            // Requer que o usuário esteja logado ou um admin SDK
+            // Para simplicidade, a deleção do Auth pode ser feita manualmente no console
+            // ou via Cloud Functions para produção.
+            
             return { success: true };
         } catch (error) {
             console.error("Erro ao deletar usuário Firebase:", error);
@@ -407,4 +373,5 @@ class Auth {
 
 // Criar instância global
 window.auth = new Auth();
+
 
